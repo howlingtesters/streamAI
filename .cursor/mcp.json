@@ -1,0 +1,38 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--browser",
+        "chromium",
+        "--headless"
+      ],
+      "env": {
+        "PLAYWRIGHT_MCP_BROWSER": "chromium",
+        "PLAYWRIGHT_MCP_HEADLESS": "true"
+      },
+      "description": "Playwright MCP server limited to browser automation only",
+      "restrictions": {
+        "allowedActions": [
+          "navigate",
+          "click",
+          "fill",
+          "select",
+          "screenshot",
+          "evaluate",
+          "waitForSelector",
+          "getText",
+          "getAttribute",
+          "isVisible"
+        ],
+        "blockedActions": [
+          "fileSystem",
+          "network",
+          "system"
+        ]
+      }
+    }
+  }
+}
+

@@ -1,0 +1,24 @@
+{
+  "name": "streamai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/howlingtesters/streamAI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/howlingtesters/streamAI/issues"
+  },
+  "homepage": "https://github.com/howlingtesters/streamAI#readme",
+  "devDependencies": {
+    "@playwright/mcp": "^0.0.45",
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.9.2"
+  }
+}
