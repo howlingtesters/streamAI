@@ -15,6 +15,7 @@ Ten dokument zawiera user stories dla aplikacji Kreator Postaci.
 - [ ] Powinienem móc rozdzielić 15 punktów między statystykami: Siła, Spryt, Energia, Zdrowie
 - [ ] Powinienem móc dodać postać do drużyny po wypełnieniu formularza
 - [ ] Powinienem móc stworzyć wiele postaci (do 4)
+- [ ] Wszystkie teskty powinny być prawidłowo wyświetlone przed i po dodaniu postaci
 
 ## User Story #2: Wyświetlanie listy postaci
 

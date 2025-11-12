@@ -11,15 +11,24 @@ This document contains rules and conventions we follow when creating automated t
 - Tests should be readable and easy to understand
 - **After finishing thinking/processing, AI should write "Cursor out!"**
 - **When generating new code, create only one example test that verifies it** - don't create multiple tests at once, focus on one working example first
+- **When asked to prepare test cases for a story, generate only test file with test names but no implementation inside the tests** - create test file structure with empty test bodies containing only test names. Do not implement test logic, assertions, or interactions.
 - **When we change rules, update existing code to comply with new rules** - if a rule changes, all existing code should be updated to follow the new rule
 - **When fixing one test, check if other tests require similar fixes** - when you fix a bug or update logic in one test, review other tests to see if they have the same issue or need similar corrections
+- **Do not repeat rules multiple times** - each rule should be stated only once in the document. If a rule needs to be mentioned in multiple contexts, reference it instead of repeating it.
 - **Avoid `waitForTimeout()` at all costs** - never use `await page.waitForTimeout(ms)` or similar fixed time waits. Instead, use proper waiting mechanisms like `waitFor()`, `toBeVisible()`, `toBeAttached()`, `waitForSelector()`, or wait for specific state changes. Fixed timeouts make tests flaky and slow.
-- **Before generating locators, always start MCP server and open browser** - navigate to the page, take a snapshot, and inspect the actual DOM structure to ensure selectors are correct and unique. Never generate locators without first inspecting the real page structure.
-- **Always close MCP browser when finished thinking** - when using MCP browser tools for inspection (`browser_navigate`, `browser_snapshot`, `browser_evaluate`), always close the browser after completing the inspection. Never leave MCP browser sessions open after finishing work.
-- **Always close browser at the end of test** - when using MCP browser tools, ensure the browser is closed after test execution. For Playwright tests, the browser is automatically closed by the framework, but if manually opened browser sessions are used, they must be closed.
+- **Don't guess where elements like popups will be - this needs to be deterministic** - always wait for elements (popups, modals, dynamic content) to appear before interacting with them. Use `waitFor()`, `waitForSelector()`, or `toBeVisible()` to ensure elements exist before clicking or reading them. Never assume elements are present without verification.
+- **Test should not use `if` when not necessary - we should know when things are displayed** - structure tests to wait deterministically for elements to appear rather than using conditional logic (`if` statements) to check if elements exist. Wait for elements to be visible/hidden using `waitFor()`, `toBeVisible()`, or `toBeHidden()` instead of checking their state with `if`. Only use `if` when there are genuinely multiple possible outcomes that need different handling.
+- **Assertions should match test name, don't use exceptions, promises etc. to avoid failures** - test assertions should directly verify what the test name claims. Use `expect()` assertions to verify expected outcomes. Don't use `throw new Error()`, `Promise.reject()`, or other exception-based mechanisms to handle failures - let the test fail naturally through failed assertions. Assume that tests will sometimes fail and that's expected behavior. The test name describes what should happen, and assertions should verify exactly that.
+- **Use steps files to do repetitive actions like adding character to the list** - create reusable step functions in separate files (e.g., `steps/character-creation.steps.ts`) for common repetitive actions like creating characters, filling forms, etc. This avoids code duplication and makes tests more maintainable. Steps should be organized by functionality and imported into test files.
+- **Use external data provider to get data for tests** - store test data in separate data provider files (e.g., `data/character-data.ts`, `data/test-data.ts`) instead of hardcoding data directly in test files. This makes tests more maintainable, allows data reuse across multiple tests, and makes it easier to update test data. Data providers should export typed data structures that match the interfaces used in steps and page objects.
+- **Before generating locators, always start MCP server and open browser** - navigate to the page, take a snapshot, and inspect the actual DOM structure to ensure selectors are correct and unique. Never generate locators without first inspecting the real page structure. Always close the browser after completing the inspection.
+- **Always close MCP browser when finished** - when using MCP browser tools for inspection (`browser_navigate`, `browser_snapshot`, `browser_evaluate`), always close the browser after completing the inspection. Never leave MCP browser sessions open after finishing work. For Playwright tests, the browser is automatically closed by the framework, but if manually opened browser sessions are used, they must be closed.
+- **Use selectors as simple and as short as possible while still being unique**
+
+### Development Mode
+- **Use only one browser type to run tests** - in development mode, configure Playwright to run tests on only one browser (e.g., chromium) to speed up test execution and reduce resource usage. Multiple browsers can be enabled for CI/production environments.
 
 ### Project Structure
-- Page configuration: `tests/config/page-config.ts`
 - Helper functions: `tests/config/helpers.ts`
 - Page Objects: `tests/pages/*.page.ts` - classes that represent pages/components with locators and methods
 - Fixtures: `tests/fixtures.ts` - custom Playwright fixtures for initializing Page Objects
@@ -50,17 +59,8 @@ This document contains rules and conventions we follow when creating automated t
 ## 🧪 Test Patterns
 
 ### beforeEach / afterEach
-- We always clear `localStorage` before each test using `clearLocalStorage()`
-- We use `beforeEach` to prepare a clean state
-- Each test should start from a clean page
-- We don't assume that the previous test left data
-- Example:
-```typescript
-test.beforeEach(async ({ page }) => {
-  await page.goto(PAGE_CONFIG.url);
-  await clearLocalStorage(page);
-  await page.reload();
-});
+- Never clear `localStorage` before each test using `clearLocalStorage()` Playwright does it automatically
+- **Always close cookie popup at the start of the test** - ensure cookie consent popup is closed before performing any test actions. This should be handled in the page object's `goto()` method or in `beforeEach` hook.
 ```
 
 ### Test Structure
@@ -68,7 +68,6 @@ test.beforeEach(async ({ page }) => {
 test('powinien [something]', async ({ page }) => {
   // 1. Preparation (arrange)
   await page.goto(PAGE_CONFIG.url);
-  await clearLocalStorage(page);
   
   // 2. Execution (act)
   await fillCharacterForm(page, {
@@ -86,134 +85,50 @@ test('powinien [something]', async ({ page }) => {
 });
 ```
 
-### Using Helpers
-- We always use functions from `config/helpers.ts` instead of direct DOM interactions
-- Examples:
-  - `fillCharacterForm()` instead of manual field filling (`page.fill()`, `page.selectOption()`)
-  - `getCharacterCount()` instead of `page.locator('.character-card').count()`
-  - `isPopupVisible()` instead of `page.locator('[role="dialog"]').isVisible()`
-  - `clearLocalStorage()` instead of `page.evaluate(() => localStorage.clear())`
-  - `addCharacter()` instead of `page.click('button:has-text("Dodaj postać")')` or `page.getByText("Dodaj postać")`
-
 ### Selectors
-- **Before generating locators, always inspect the page** - start MCP server, navigate to the page, take snapshot, and use `browser_evaluate` to check actual DOM structure (IDs, classes, attributes). This ensures selectors are correct and unique.
+- **MOST IMPORTANT: Selectors must be unique** - a unique selector or locator means it should point to only one element on the current page. Always verify uniqueness when creating or updating selectors. This is the top priority when choosing selectors - simplicity and shortness are secondary to uniqueness. If a selector matches multiple elements, make it more specific (e.g., `h1` → `#parent-id h1`, use sibling selectors `#element ~ h2`, or parent class selectors `#parent .class-name h2`). **Never use `.first()`, `.last()`, or similar methods** - write everything in the selector itself.
+- **Use selectors as simple and as short as possible while still being unique** - prefer CSS classes or preferably IDs. Keep selectors minimal and readable (e.g., `#element-id` or `.class-name` instead of `#parent-id > div:nth-child(2) > .class-name`). Remember: uniqueness comes first, simplicity second.
 - **Never locate elements by text** - use attributes, IDs, classes, data-testid, or other stable selectors
 - **Never use `has-text()` function** - use stable selectors like `id`, `data-testid`, `aria-label`, `class`, or `label[for]` instead
-- **Ensure selectors are unique** - when generating locators, verify they target only one element. If not unique, make them more specific (e.g., `h1` → `#parent-id h1`, use sibling selectors `#element ~ h2`, or parent class selectors `#parent .class-name h2`). **Never use `.first()`, `.last()`, or similar methods** - write everything in the selector itself.
 - We use selectors from `PAGE_CONFIG.selectors` instead of hardcoding
-- We don't write selectors directly in tests: `page.locator('button:has-text("Dodaj postać")')`, `page.locator('label:has-text("Siła:")')`, or `page.getByText("Dodaj postać")`
-- We use: `page.locator(PAGE_CONFIG.selectors.addCharacterButton)` or `page.locator('[data-testid="add-character"]')` or `page.locator('label[for="strength"]')`
-- If a selector doesn't work, we update `page-config.ts` instead of the test
-- Selectors in `page-config.ts` can contain alternatives separated by commas
-- Prefer: `data-testid`, `id`, `aria-label`, `role`, CSS classes, `label[for]` over text content
-- If using tag selectors like `h1`, `h2`, ensure uniqueness by adding parent context or use `.first()` if multiple exist
+- We don't write selectors directly in tests
+- We use page object for storing selectors
+- Prefer: `id`, CSS classes, `data-testid`, `aria-label`, `role`, `label[for]` over text content
+- If using tag selectors like `h1`, `h2`, ensure uniqueness by adding parent context
 
 ## ✅ Best Practices
 
 ### Test Isolation
 - Each test should be independent
-- We use `beforeEach` to clean state
 - We don't assume test execution order
-- **Browser cleanup** - Playwright automatically closes the browser after each test. If using MCP browser tools for inspection (`browser_navigate`, `browser_snapshot`, `browser_evaluate`), **always close the browser immediately after completing the inspection** - do not leave MCP browser sessions open.
+- **Browser cleanup** - see "Always close MCP browser when finished" rule in AI Collaboration section above.
+- **Always use Page Object Pattern (POP)** - create Page Object classes in `tests/pages/` directory instead of step functions. Each Page Object class represents a page or component and contains locators, interaction methods, and verification methods. Use Page Objects in tests instead of step functions. This makes tests more maintainable, reusable, and follows best practices.
+- **Initialize Page Objects in fixtures** - create custom fixtures in `tests/fixtures.ts` that automatically initialize Page Objects. Use fixtures in tests instead of manually creating Page Object instances. This ensures consistent initialization and makes tests cleaner.
 
 ### Assertions
 - We use `expect()` from Playwright for assertions
 - We check both positive and negative scenarios
-- We verify both UI and application state (e.g., localStorage)
-- **Always use Page Object Pattern (POP)** - create Page Object classes in `tests/pages/` directory instead of step functions. Each Page Object class represents a page or component and contains locators, interaction methods, and verification methods. Use Page Objects in tests instead of step functions or direct assertions. This makes tests more maintainable, reusable, and follows best practices.
-- **Initialize Page Objects in fixtures** - create custom fixtures in `tests/fixtures.ts` that automatically initialize Page Objects. Use fixtures in tests instead of manually creating Page Object instances. This ensures consistent initialization and makes tests cleaner.
+- Write assertions as steps in steep files
 
 ### Comments
-- Comments can be in Polish (for better readability in the context of user stories)
+
+- Write comments only when necessary (skip if code is self commented)
 - They explain "why" not "what" (code should be self-documenting)
 - We use comments to describe test sections (arrange/act/assert)
-- Code (function names, variables, classes) always in English
+
 
 ### Timeouts
-- We use timeouts from `PAGE_CONFIG.timeouts` if needed
+- We use timeouts if needed
 - By default, Playwright has reasonable timeouts
 - We don't set timeouts without a reason
 
-## 📦 User Stories
-
-### Mapping Tests to User Stories
+### Mapping User Stories to Tests
 - Each user story should have a dedicated test file or section
 - File name should correspond to the main functionality of the user story
 - Tests should cover all acceptance criteria
-
-### Test File Structure
-```typescript
-import { test, expect } from '@playwright/test';
-import {
-  PAGE_CONFIG,
-  clearLocalStorage,
-  fillCharacterForm,
-  addCharacter,
-  getCharacterCount,
-} from './config';
-
-test.describe('User Story #X: [Name]', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto(PAGE_CONFIG.url);
-    await clearLocalStorage(page);
-    await page.reload();
-  });
-
-  test('powinien [acceptance criteria 1]', async ({ page }) => {
-    // Arrange
-    // Act
-    // Assert
-  });
-
-  test('powinien [acceptance criteria 2]', async ({ page }) => {
-    // Arrange
-    // Act
-    // Assert
-  });
-});
-```
-
-## 🔧 Configuration Updates
-
-### When to Update `page-config.ts`
-- When a selector doesn't work - we add alternative selectors
-- When the page structure changes
-- When we add new UI elements
-
-### When to Update `helpers.ts`
-- When we need a new helper function used in many tests
-- When logic is repeated in many tests
-- When we want to simplify UI interaction
+- **Combine test cases from acceptance criteria when other test cases will cover previous ones** - if one test case already covers the functionality of another acceptance criterion, combine them into a single test rather than creating redundant tests. This reduces test duplication and maintenance overhead.
 
 ## 🚫 What to Avoid
-
-- ❌ **Locating elements by text** (`page.getByText()`, `page.locator('button:has-text("...")')`) - use stable selectors instead
-- ❌ **Using `has-text()` function** (`page.locator('label:has-text("Siła:")')`, `page.locator('h3:has-text("Wybierz klasę:")')`) - use `id`, `data-testid`, `label[for]`, or other stable selectors instead
-- ❌ **Non-unique selectors** (`page.locator('h1')` when multiple H1 exist, `page.locator('h2')` when multiple H2 exist) - make selectors unique by adding parent context (`#parent-id h1`, `#parent .class-name h2`, `#sibling ~ h3`)
-- ❌ **Using `.first()`, `.last()`, or similar methods** (`page.locator('h2').first()`) - write everything in the selector itself using parent context, sibling selectors, or class selectors
-- ❌ Hardcoding selectors in tests
-- ❌ Repeating logic in many tests (we use helpers)
-- ❌ Assuming test execution order
-- ❌ Tests dependent on each other
 - ❌ Tests that are too long (>100 lines) - we split into smaller ones
-- ❌ Tests without a clear purpose
 - ❌ Ignoring errors (`.catch()` without reason)
-- ❌ Using Polish names in code (variables, functions, classes)
-- ❌ Manual form filling instead of `fillCharacterForm()`
 - ❌ Direct DOM interactions if a helper exists
-
-## 📚 Additional Rules
-
-### File and Code Language
-- **All files generated in English** (file names: `character-creation.spec.ts`, not `tworzenie-postaci.spec.ts`)
-- All code (variables, functions, classes, interfaces) in English
-- Test names and comments can be in Polish for better readability in the context of Polish user stories
-- Imports and exports in English
-- Configuration and helper file names in English: `page-config.ts`, `helpers.ts`, not `konfiguracja-strony.ts`
-
-_(You can add your own rules here as the project develops)_
-
----
-
-**Last updated:** [Date will be automatically updated]
-
