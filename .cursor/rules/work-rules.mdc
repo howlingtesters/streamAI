@@ -1,0 +1,141 @@
+---
+description: Work rules and conventions for Character Creator automated tests
+globs: ["tests/**/*.ts", "tests/**/*.spec.ts", "playwright.config.ts"]
+alwaysApply: true
+---
+
+# 📋 Work Rules - Character Creator - Automated Tests
+
+This document contains rules and conventions we follow when creating automated tests for the Character Creator application.
+
+## Project Structure
+
+- Helper functions: `tests/config/helpers.ts`
+- Page Objects: `tests/pages/*.page.ts` - classes that represent pages/components with locators and methods
+- Fixtures: `tests/fixtures.ts` - custom Playwright fixtures for initializing Page Objects
+- Tests: `tests/*.spec.ts`
+- User stories: `tests/user_stories_kreator_postaci.md`
+- Steps: `tests/steps/*.steps.ts` - reusable step functions for complex interactions
+- Data providers: `tests/data/*.ts` - test data stored in separate files
+
+## 📝 Naming Conventions
+
+### Test Files
+- Format: `kebab-case.spec.ts` (e.g., `character-creation.spec.ts`)
+- **All file names in English**
+- File name should correspond to the tested functionality
+
+### Test Names
+- Written in English
+- Format: `should [something] [when/in which case]`
+- Examples:
+  - `should create character with full data`
+  - `should display error message when class is missing`
+  - `should not allow adding 5th character`
+
+### Code Variables
+- We use `camelCase` in English
+- Names should be descriptive and readable
+- Correct examples: `characterCount`, `remainingPoints`, `firstCard`, `characterCards`, `popupMessage`
+- Incorrect examples: `count`, `pts`, `card1`, `msg` (too short/not descriptive)
+
+## 🧪 Test Patterns
+
+### Test Structure
+- Use `test.describe()` blocks to group related tests by user story or functionality. Each user story should typically have its own describe block.
+
+```typescript
+test.describe('User Story #1: Character Creation', () => {
+  test('should [something]', async ({ characterCreatorPage }) => {
+    // 1. Preparation (arrange)
+    await characterCreatorPage.goto();
+    await characterCreatorPage.closeCookiePopup();
+    
+    // 2. Execution (act)
+    await addCharacterToList(characterCreatorPage, characterData);
+    
+    // 3. Verification (assert)
+    const characterCount = await characterCreatorPage.getCharacterCount();
+    expect(characterCount).toBe(1);
+    await characterCreatorPage.verifyCharacterInList('CharacterName');
+  });
+});
+```
+
+### beforeEach / afterEach
+- Never clear `localStorage` before each test using `clearLocalStorage()` - Playwright automatically clears browser state (including localStorage) between tests, so manual clearing is unnecessary and can cause issues
+- **Always close cookie popup at the start of the test** - ensure cookie consent popup is closed before performing any test actions. This should be handled in the page object's `goto()` method or in `beforeEach` hook.
+
+### Waiting for Elements
+- **Avoid `waitForTimeout()` at all costs** - never use `await page.waitForTimeout(ms)` or similar fixed time waits. Instead, use proper waiting mechanisms like `waitFor()`, `toBeVisible()`, `toBeAttached()`, `waitForSelector()`, or wait for specific state changes. Fixed timeouts make tests flaky and slow.
+- **Don't guess where elements like popups will be - this needs to be deterministic** - always wait for elements (popups, modals, dynamic content) to appear before interacting with them. Use `waitFor()`, `waitForSelector()`, or `toBeVisible()` to ensure elements exist before clicking or reading them. Never assume elements are present without verification.
+- **Test should not use `if` when not necessary - we should know when things are displayed** - structure tests to wait deterministically for elements to appear rather than using conditional logic (`if` statements) to check if elements exist. Wait for elements to be visible/hidden using `waitFor()`, `toBeVisible()`, or `toBeHidden()` instead of checking their state with `if`. Only use `if` when there are genuinely multiple possible outcomes that need different handling.
+
+### Assertions
+- **Assertions should match test name, don't use exceptions, promises etc. to avoid failures** - test assertions should directly verify what the test name claims. Use `expect()` assertions to verify expected outcomes. Don't use `throw new Error()`, `Promise.reject()`, or other exception-based mechanisms to handle failures - let the test fail naturally through failed assertions. Assume that tests will sometimes fail and that's expected behavior. The test name describes what should happen, and assertions should verify exactly that.
+- We use `expect()` from Playwright for assertions
+- We check both positive and negative scenarios
+- Write complex assertion logic as reusable methods in step files when the same verification is used across multiple tests. Avoid assertions in page objects.
+
+### Test Isolation
+- Each test should be independent - does not depend on other tests
+- We don't assume test execution order
+- Tests should be readable and easy to understand
+
+## Selectors
+
+- **MOST IMPORTANT: Selectors must be unique** - a unique selector or locator means it should point to only one element on the current page. Always verify uniqueness when creating or updating selectors. This is the top priority when choosing selectors - simplicity and shortness are secondary to uniqueness. If a selector matches multiple elements, make it more specific (e.g., `h1` → `#parent-id h1`, use sibling selectors `#element ~ h2`, or parent class selectors `#parent .class-name h2`). **Never use `.first()`, `.last()`, or similar methods** - write everything in the selector itself.
+- **Use selectors as simple and as short as possible while still being unique** - prefer CSS classes or preferably IDs. Keep selectors minimal and readable (e.g., `#element-id` or `.class-name` instead of `#parent-id > div:nth-child(2) > .class-name`). Remember: uniqueness comes first, simplicity second.
+- **Never locate elements by text** - use attributes, IDs, classes, data-testid, or other stable selectors
+- **Never use `has-text()` function** - use stable selectors like `id`, `data-testid`, `aria-label`, `class`, or `label[for]` instead
+- We store selectors in Page Objects instead of hardcoding them directly in tests. All selectors should be defined as properties in the Page Object class.
+- We don't write selectors directly in tests
+- We use page object for storing selectors
+- Prefer: `id`, CSS classes, `data-testid`, `aria-label`, `role`, `label[for]` over text content
+- If using tag selectors like `h1`, `h2`, ensure uniqueness by adding parent context
+
+## ✅ Best Practices
+
+### Page Object Pattern
+- **Always use Page Object Pattern (POP)** - create Page Object classes in `tests/pages/` directory. Page Objects contain locators and simple interaction methods (click, fill, select, etc.) based on those locators. They represent the page structure and basic browser interactions. Page Objects should NOT contain business logic or complex workflows.
+- **Initialize Page Objects in fixtures** - create custom fixtures in `tests/fixtures.ts` that automatically initialize Page Objects. Use fixtures in tests instead of manually creating Page Object instances. This ensures consistent initialization and makes tests cleaner.
+
+### Steps Files
+- **Use steps files for business logic and complex workflows** - create reusable step functions in separate files (e.g., `steps/character-creation.steps.ts`) that combine multiple Page Object methods into complex actions representing business logic or user workflows. Steps orchestrate Page Object interactions to perform higher-level operations (e.g., creating a character involves filling form, selecting options, and submitting). Use steps when you need to combine multiple page object calls into a single meaningful action with business logic.
+
+### Data Providers
+- **Use external data provider to get data for tests** - store test data in separate data provider files (e.g., `data/character-data.ts`, `data/test-data.ts`) instead of hardcoding data directly in test files. This makes tests more maintainable, allows data reuse across multiple tests, and makes it easier to update test data. Data providers should export typed data structures that match the interfaces used in steps and page objects.
+
+### Comments
+- Write comments only when necessary (skip if code is self commented)
+- They explain "why" not "what" (code should be self-documenting)
+- We use comments to describe test sections (arrange/act/assert)
+
+### Timeouts
+- Only set custom timeouts when Playwright's default timeouts are insufficient for specific slow operations. Prefer waiting for specific conditions over fixed timeouts. Default Playwright timeouts are usually sufficient and should be used unless there's a specific need for custom values.
+
+### Mapping User Stories to Tests
+- Each user story should have a dedicated test file or section
+- File name should correspond to the main functionality of the user story
+- Tests should cover all acceptance criteria
+- **Combine test cases from acceptance criteria when other test cases will cover previous ones** - if one test case already covers the functionality of another acceptance criterion, combine them into a single test rather than creating redundant tests. This reduces test duplication and maintenance overhead.
+
+## 🎯 AI Collaboration
+
+- AI should use existing helpers and configuration instead of writing everything from scratch
+- **Always use official documentation as first source of truth** - when providing recommendations, answers, or implementing features, always check and reference official documentation first. Never rely solely on general web searches, outdated information, or assumptions. Verify current best practices against official sources before making recommendations.
+- **All files should be generated in English** (file names, code, variables, functions, classes, test names and comments)
+- **After finishing thinking/processing, AI should write "Cursor out!"** - after completing code generation, major refactoring, or when finishing a complete feature implementation, write "Cursor out!" to signal that the current task is complete and ready for review
+- **When generating new code, create only one example test that verifies it** - don't create multiple tests at once, focus on one working example first
+- **When asked to prepare test cases for a story, generate only test file with test names but no implementation inside the tests** - create test file structure with empty test bodies containing only test names. Do not implement test logic, assertions, or interactions.
+- **When we change rules, update existing code to comply with new rules** - if a rule changes, all existing code should be updated to follow the new rule
+- **When fixing one test, check if other tests require similar fixes** - when you fix a bug or update logic in one test, review other tests to see if they have the same issue or need similar corrections
+- **MCP Browser Workflow for Locator Generation** - when generating locators, follow this complete workflow: (1) Start MCP server and open browser in incognito mode to ensure a clean state without cookies, cache, or stored data, (2) Navigate to the page and take a snapshot, (3) Inspect the actual DOM structure to verify selector uniqueness, (4) Always close the browser after completing the inspection. Never leave MCP browser sessions open after finishing work. For Playwright tests, the browser is automatically closed by the framework, but manually opened MCP browser sessions must be explicitly closed. Never generate locators without first inspecting the real page structure.
+
+### Development Mode
+- **Use only one browser type to run tests** - in development mode, configure Playwright to run tests on only one browser (e.g., chromium) to speed up test execution and reduce resource usage. Multiple browsers can be enabled for CI/production environments.
+
+## 🚫 What to Avoid
+- ❌ Tests that are too long (>100 lines) - we split into smaller ones
+- ❌ Ignoring errors (`.catch()` without reason)
+- ❌ Direct DOM interactions if a helper exists
