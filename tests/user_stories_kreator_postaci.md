@@ -9,7 +9,7 @@ Ten dokument zawiera user stories dla aplikacji Kreator Postaci.
 **Aby** móc zbudować swoją drużynę
 
 ### Kryteria akceptacji:
-- [ ] Powinienem móc wpisać imię postaci (domyślnie "Bohater")
+- [ ] Powinienem móc wpisać imię postaci (pole z placeholderem "Wpisz imię...")
 - [ ] Powinienem móc wybrać rasę z listy: Człowiek, Elf, Krasnolud, Ork
 - [ ] Powinienem móc wybrać klasę: Wojownik, Łotrzyk, Czarodziej, Zwiadowca
 - [ ] Powinienem móc rozdzielić 15 punktów między statystykami: Siła, Spryt, Energia, Zdrowie

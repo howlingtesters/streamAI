@@ -16,6 +16,7 @@ export class CharacterFormComponent {
   readonly healthField: Locator;
   readonly generateButton: Locator;
   readonly pointsLeft: Locator;
+  readonly pointsHeading: Locator;
   readonly popup: Locator;
   readonly popupCloseButton: Locator;
 
@@ -34,6 +35,7 @@ export class CharacterFormComponent {
     this.healthField = page.locator('#health');
     this.generateButton = page.locator('#generate-btn');
     this.pointsLeft = page.locator('#points-left');
+    this.pointsHeading = page.locator('h2:has(#points-left)');
     this.popup = page.locator('#popup');
     this.popupCloseButton = page.locator('#popup-close');
   }

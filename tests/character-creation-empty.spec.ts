@@ -3,14 +3,13 @@ import { addCharacterToList } from './steps/character-creation.steps';
 import { legolas, fourCharacters } from './data/character-data';
 
 test.describe('User Story #1: Character Creation', () => {
-  test('should have default name "Bohater"', async ({ characterCreatorPage }) => {
+  test('should have name input with placeholder', async ({ characterCreatorPage }) => {
     // Arrange
     await characterCreatorPage.goto();
     await characterCreatorPage.closeCookiePopup();
 
-    // Act & Assert - verify default name value
-    const defaultName = await characterCreatorPage.getNameInputValue();
-    expect(defaultName).toBe('Bohater');
+    // Act & Assert - verify name input has correct placeholder
+    await expect(characterCreatorPage.form.nameInput).toHaveAttribute('placeholder', 'Wpisz imię...');
   });
 
   test('should allow adding character to party after filling form', async ({ characterCreatorPage }) => {

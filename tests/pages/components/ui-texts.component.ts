@@ -40,10 +40,10 @@ export class UiTextsComponent {
     this.classHeading = page.locator('h3:has-text("Wybierz klasę:")');
     this.classOptionLabels = page.locator('.class-option p');
     this.statsHeading = page.locator('h3:has-text("Cechy postaci")');
-    this.strengthLabel = page.locator('label[for="strength"]');
-    this.dexterityLabel = page.locator('label[for="dexterity"]');
-    this.energyLabel = page.locator('label[for="energy"]');
-    this.healthLabel = page.locator('label[for="health"]');
+    this.strengthLabel = page.locator('label:has(#strength)');
+    this.dexterityLabel = page.locator('label:has(#dexterity)');
+    this.energyLabel = page.locator('label:has(#energy)');
+    this.healthLabel = page.locator('label:has(#health)');
 
     // Character List Section
     this.characterListTitle = page.locator('h2:has-text("Twoje postacie")');
@@ -63,14 +63,14 @@ export class UiTextsComponent {
     await expect(this.raceLabel).toHaveText('Rasa:');
     await expect(this.classHeading).toHaveText('Wybierz klasę:');
     await expect(this.statsHeading).toHaveText('Cechy postaci');
-    await expect(this.form.pointsLeft).toContainText('Punkty do wydania:');
+    await expect(this.form.pointsHeading).toContainText('Punkty do wydania:');
     await expect(this.form.generateButton).toHaveText('Dodaj postać');
   }
 
   async verifyRaceOptions(): Promise<void> {
     const options = ['Człowiek', 'Elf', 'Krasnolud', 'Ork'];
     for (const option of options) {
-      await expect(this.form.raceSelect.locator(`option:has-text("${option}")`)).toBeVisible();
+      await expect(this.form.raceSelect.locator(`option:has-text("${option}")`)).toBeAttached();
     }
   }
 
