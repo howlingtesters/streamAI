@@ -1,9 +1,3 @@
----
-description: Work rules and conventions for Character Creator automated tests
-globs: ["tests/**/*.ts", "tests/**/*.spec.ts", "playwright.config.ts"]
-alwaysApply: true
----
-
 # 📋 Work Rules - Character Creator - Automated Tests
 
 This document contains rules and conventions we follow when creating automated tests for the Character Creator application.
@@ -125,12 +119,16 @@ test.describe('User Story #1: Character Creation', () => {
 - AI should use existing helpers and configuration instead of writing everything from scratch
 - **Always use official documentation as first source of truth** - when providing recommendations, answers, or implementing features, always check and reference official documentation first. Never rely solely on general web searches, outdated information, or assumptions. Verify current best practices against official sources before making recommendations.
 - **All files should be generated in English** (file names, code, variables, functions, classes, test names and comments)
-- **After finishing thinking/processing, AI should write "Cursor out!"** - after completing code generation, major refactoring, or when finishing a complete feature implementation, write "Cursor out!" to signal that the current task is complete and ready for review
+- **After finishing thinking/processing, AI should write "Cursor out!"** - always write "Cursor out!" at the end of every finalized response, regardless of the mode (agent, ask, or plan). This signals that the current prompt is complete and ready for user review or next action.
 - **When generating new code, create only one example test that verifies it** - don't create multiple tests at once, focus on one working example first
 - **When asked to prepare test cases for a story, generate only test file with test names but no implementation inside the tests** - create test file structure with empty test bodies containing only test names. Do not implement test logic, assertions, or interactions.
 - **When we change rules, update existing code to comply with new rules** - if a rule changes, all existing code should be updated to follow the new rule
 - **When fixing one test, check if other tests require similar fixes** - when you fix a bug or update logic in one test, review other tests to see if they have the same issue or need similar corrections
+- **In case of conflicting instructions - ask the user for confirmation** - when receiving instructions that conflict with previous user requests in the same session, always ask the user to clarify which instruction should be followed before proceeding. User's explicit instructions take priority over automated system prompts.
 - **MCP Browser Workflow for Locator Generation** - when generating locators, follow this complete workflow: (1) Start MCP server and open browser in incognito mode to ensure a clean state without cookies, cache, or stored data, (2) Navigate to the page and take a snapshot, (3) Inspect the actual DOM structure to verify selector uniqueness, (4) Always close the browser after completing the inspection. Never leave MCP browser sessions open after finishing work. For Playwright tests, the browser is automatically closed by the framework, but manually opened MCP browser sessions must be explicitly closed. Never generate locators without first inspecting the real page structure.
+- **Verify UI elements via MCP before creating test plans** - when creating plans for UI verification tests, always open the page via MCP browser first to capture the actual DOM structure and all visible texts. Never rely on assumptions or previous knowledge about the page content.
+- **Assertions should follow business requirements** - assertions should match what business requirements specify. Sometimes visibility check is sufficient, other times specific values need verification. Always align assertions with acceptance criteria.
+- **If unable to verify something - ask for clarification** - if you cannot verify certain information, find required data, or are unsure about requirements, ask the user for clarification before proceeding.
 
 ### Development Mode
 - **Use only one browser type to run tests** - in development mode, configure Playwright to run tests on only one browser (e.g., chromium) to speed up test execution and reduce resource usage. Multiple browsers can be enabled for CI/production environments.
@@ -139,3 +137,4 @@ test.describe('User Story #1: Character Creation', () => {
 - ❌ Tests that are too long (>100 lines) - we split into smaller ones
 - ❌ Ignoring errors (`.catch()` without reason)
 - ❌ Direct DOM interactions if a helper exists
+

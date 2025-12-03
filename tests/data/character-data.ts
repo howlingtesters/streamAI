@@ -23,7 +23,7 @@ export const gandalf: CharacterData = {
 
 export const aragorn: CharacterData = {
   name: 'Aragorn',
-  race: 'Człowiek',
+  race: 'Ork',
   class: 'Łotrzyk',
   stats: { strength: 15, dexterity: 15, energy: 10, health: 15 }
 };

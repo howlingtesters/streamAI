@@ -3,6 +3,16 @@ import { addCharacterToList } from './steps/character-creation.steps';
 import { legolas, fourCharacters } from './data/character-data';
 
 test.describe('User Story #1: Character Creation', () => {
+  test('should have default name "Bohater"', async ({ characterCreatorPage }) => {
+    // Arrange
+    await characterCreatorPage.goto();
+    await characterCreatorPage.closeCookiePopup();
+
+    // Act & Assert - verify default name value
+    const defaultName = await characterCreatorPage.getNameInputValue();
+    expect(defaultName).toBe('Bohater');
+  });
+
   test('should allow adding character to party after filling form', async ({ characterCreatorPage }) => {
     // Arrange
     await characterCreatorPage.goto();
@@ -38,9 +48,28 @@ test.describe('User Story #1: Character Creation', () => {
     }
   });
 
-  test('should display all main texts correctly before and after adding character', async () => {
-    // TODO: Implement test
-    // Covers: text display verification
+  test('should display all main texts correctly before and after adding character', async ({ characterCreatorPage }) => {
+    // Arrange
+    await characterCreatorPage.goto();
+    await characterCreatorPage.closeCookiePopup();
+
+    // Assert - verify ALL texts BEFORE adding character (13 elements)
+    await characterCreatorPage.verifyFormTextsVisible();
+    await characterCreatorPage.verifyRaceOptions();
+    await characterCreatorPage.verifyClassOptions();
+    await characterCreatorPage.verifyStatLabels();
+
+    // Act - add character
+    await addCharacterToList(characterCreatorPage, legolas);
+
+    // Assert - verify texts AFTER adding character
+    await characterCreatorPage.verifyFormTextsVisible();
+    await characterCreatorPage.verifyCharacterCardTexts(
+      legolas.name,
+      legolas.race,
+      legolas.class,
+      legolas.stats
+    );
   });
 });
 
